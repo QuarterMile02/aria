@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ARIA Auth</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f1117; color: #e8eaf0; display: flex; align-items: center;
+           justify-content: center; height: 100vh; padding: 24px; }
+    .card { background: #161b27; border: 1px solid #2a3348; border-radius: 14px;
+            padding: 32px 24px; max-width: 380px; width: 100%; text-align: center; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h2 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .green { color: #8dc63f; }
+    .red { color: #f85149; }
+    p { font-size: 12px; color: #8b95b0; line-height: 1.7; margin-bottom: 16px; }
+    .step { background: #0f1117; border: 1px solid #3a4560; border-radius: 10px;
+            padding: 14px 16px; margin-bottom: 12px; text-align: left; }
+    .step-num { display: inline-block; background: #8dc63f; color: #0f1117;
+                border-radius: 50%; width: 20px; height: 20px; text-align: center;
+                line-height: 20px; font-size: 11px; font-weight: 800; margin-right: 8px; }
+    .step-text { font-size: 12px; color: #e8eaf0; }
+    .copied-badge { display: inline-block; background: rgba(141,198,63,.15);
+                    border: 1px solid rgba(141,198,63,.3); color: #8dc63f;
+                    border-radius: 20px; padding: 4px 14px; font-size: 11px;
+                    font-weight: 700; margin-bottom: 16px; }
+    .btn { background: #8dc63f; color: #0f1117; border: none; border-radius: 8px;
+           padding: 11px 20px; font-weight: 700; font-size: 13px; cursor: pointer; width: 100%; }
+    .btn:hover { opacity: .88; }
+    .btn-ghost { background: transparent; color: #8b95b0; border: 1px solid #2a3348;
+                 border-radius: 8px; padding: 9px 20px; font-size: 12px;
+                 cursor: pointer; width: 100%; margin-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="icon">⏳</div>
+  <p>Completing sign-in…</p>
+</div>
+
+<script>
+const hash = window.location.hash.substring(1);
+const params = new URLSearchParams(hash);
+const token = params.get('access_token');
+const error = params.get('error');
+
+if (token) {
+
+  // ATTEMPT 1: Office messageParent (desktop Outlook displayDialogAsync)
+  let officeSent = false;
+  try {
+    Office.onReady(function() {
+      try {
+        Office.context.ui.messageParent(JSON.stringify({ type: 'aria_token', token }));
+        officeSent = true;
+        showAutoClose();
+      } catch(e) { if (!officeSent) showManual(); }
+    });
+  } catch(e) {}
+
+  // ATTEMPT 2: postMessage to opener (browser popup / web Outlook)
+  try {
+    if (window.opener) {
+      window.opener.postMessage({ type: 'aria_token', token },
+        'https://quartermile-aria.netlify.app');
+      showAutoClose();
+    }
+  } catch(e) {}
+
+  // ATTEMPT 3: Auto-copy + show manual instructions (desktop Outlook external tab)
+  // If neither Office nor opener worked after 1.5s, show manual flow
+  setTimeout(function() {
+    if (!officeSent && !window.opener) showManual();
+  }, 1500);
+
+  function showAutoClose() {
+    document.getElementById('card').innerHTML = `
+      <div class="icon">✅</div>
+      <h2 class="green">Connected!</h2>
+      <p>ARIA is connected. This window will close automatically.</p>`;
+    setTimeout(function() { try { window.close(); } catch(e) {} }, 2000);
+  }
+
+  function showManual() {
+    // Auto-copy token to clipboard immediately — no click needed
+    navigator.clipboard.writeText(token).then(function() {
+      document.getElementById('card').innerHTML = `
+        <div class="icon">✅</div>
+        <h2 class="green">Signed In!</h2>
+        <div class="copied-badge">✅ Auth code auto-copied to clipboard</div>
+        <div class="step">
+          <span class="step-num">1</span>
+          <span class="step-text">Switch back to Outlook</span>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <span class="step-text">Paste in the ARIA sidebar <strong>(Ctrl+V)</strong></span>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <span class="step-text">Click <strong>✓ Use</strong> — done!</span>
+        </div>
+        <button class="btn-ghost" onclick="window.close()">Close Window</button>`;
+    }).catch(function() {
+      // Clipboard blocked — show manual copy button
+      document.getElementById('card').innerHTML = `
+        <div class="icon">✅</div>
+        <h2 class="green">Signed In!</h2>
+        <p>Click below to copy your auth code, then paste it in the ARIA sidebar.</p>
+        <button class="btn" onclick="manualCopy()">📋 Copy Auth Code</button>
+        <div class="step" style="margin-top:12px">
+          <span class="step-num">1</span>
+          <span class="step-text">Copy → Switch to Outlook → Paste in ARIA → Click <strong>✓ Use</strong></span>
+        </div>
+        <button class="btn-ghost" onclick="window.close()">Close Window</button>`;
+      window._token = token;
+    });
+  }
+
+} else {
+  const errMsg = params.get('error_description') || error || 'Unknown error';
+  document.getElementById('card').innerHTML = `
+    <div class="icon">❌</div>
+    <h2 class="red">Auth Failed</h2>
+    <p>Close this window and try again.<br>
+    <span style="font-size:10px;color:#5a6480">${errMsg}</span></p>
+    <button class="btn-ghost" onclick="window.close()">Close</button>`;
+  try {
+    Office.onReady(function() {
+      Office.context.ui.messageParent(
+        JSON.stringify({ type: 'aria_error', error: error }));
+    });
+  } catch(e) {}
+}
+
+function manualCopy() {
+  navigator.clipboard.writeText(window._token || '').then(function() {
+    document.querySelector('.btn').textContent = '✅ Copied!';
+    document.querySelector('.btn').style.background = '#6fa832';
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARIA · Email Agent</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d40;
+  --border:#2a3348;--border2:#3a4560;
+  --text:#e8eaf0;--muted:#8b95b0;--muted2:#5a6480;
+  --green:#8dc63f;--green2:#6fa832;--green3:rgba(141,198,63,.12);
+  --blue:#4a9eff;--purple:#bc8cff;--orange:#d29922;--gold:#e3b341;
+  --red:#f85149;--pink:#ff6b9d;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:13px}
+
+/* SETUP SCREEN */
+#setupScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:24px;gap:16px;background:linear-gradient(160deg,#0d1520 0%,#0f1117 60%)}
+.setup-logo{font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--green)}
+.setup-logo span{color:var(--muted)}
+.setup-subtitle{font-size:11px;color:var(--muted);text-align:center}
+.setup-card{width:100%;max-width:320px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.setup-card label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.setup-card input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;outline:none;transition:border .2s}
+.setup-card input:focus{border-color:var(--green)}
+.btn-primary{background:var(--green);color:#0f1117;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:13px;cursor:pointer;width:100%;transition:opacity .2s}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px;cursor:pointer;width:100%}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text)}
+.setup-hint{font-size:10px;color:var(--muted2);text-align:center}
+.setup-hint a{color:var(--green);text-decoration:none}
+
+/* MAIN APP */
+#mainApp{display:none;flex-direction:column;height:100vh}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-weight:800;font-size:14px;color:var(--green);letter-spacing:-.5px;flex-shrink:0}
+.email-chip{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default;min-width:0;display:flex;align-items:center;gap:5px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);flex-shrink:0;transition:background .3s}
+.live-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+.topbar-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;border-radius:6px;flex-shrink:0}
+.topbar-btn:hover{color:var(--text);background:var(--bg3)}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.3px}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* PANELS */
+.panel{display:none;flex:1;overflow-y:auto;padding:10px;flex-direction:column;gap:8px}
+.panel.active{display:flex}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* EMAIL PREVIEW CARD */
+.email-preview-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;gap:8px;align-items:flex-start;min-height:52px}
+.ep-from{font-size:11px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ep-subject{font-size:11px;color:var(--muted);margin-bottom:3px}
+.ep-preview{font-size:10px;color:var(--muted2);line-height:1.4}
+.ep-empty{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px;color:var(--muted2);font-size:11px;width:100%;text-align:center}
+
+/* GRAPH CONNECT BANNER */
+#graphAuthBanner{display:none;flex-direction:column;gap:8px;background:rgba(74,158,255,.07);border:1px solid rgba(74,158,255,.2);border-radius:10px;padding:12px;align-items:center;text-align:center}
+#graphAuthBanner p{font-size:11px;color:var(--muted);line-height:1.5}
+.btn-graph{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-graph:hover{opacity:.88}
+.graph-status{font-size:10px;color:var(--green);display:none;text-align:center}
+
+/* ANALYZE BTN */
+.analyze-btn{background:linear-gradient(135deg,var(--green),var(--green2));color:#0f1117;border:none;border-radius:10px;padding:11px;font-weight:800;font-size:13px;cursor:pointer;width:100%;letter-spacing:.3px;transition:opacity .2s;flex-shrink:0}
+.analyze-btn:hover{opacity:.88}
+.analyze-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* TAGS */
+.tags-row{display:flex;flex-wrap:wrap;gap:5px}
+.tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.t-urgent{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.t-action{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.3)}
+.t-meeting{background:rgba(188,140,255,.15);color:#bc8cff;border:1px solid rgba(188,140,255,.3)}
+.t-followup{background:rgba(74,158,255,.15);color:#4a9eff;border:1px solid rgba(74,158,255,.3)}
+.t-fyi{background:rgba(141,198,63,.12);color:var(--green);border:1px solid rgba(141,198,63,.25)}
+.t-newsletter,.t-spam{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.p-high{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.p-medium{background:rgba(210,153,34,.15);color:#d29922;border:1px solid rgba(210,153,34,.3)}
+.p-low{background:rgba(141,198,63,.12);color:var(--green);border:1px solid rgba(141,198,63,.25)}
+
+/* RESULT CARDS */
+.result-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.result-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.result-text{font-size:11px;color:var(--text);line-height:1.5}
+.reply-option{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:10px;cursor:pointer;text-align:left;width:100%;margin-top:4px;transition:border-color .15s}
+.reply-option:hover{border-color:var(--green);color:var(--green)}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.action-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-size:10px;cursor:pointer;font-weight:600;transition:all .15s}
+.action-btn:hover{border-color:var(--green);color:var(--green)}
+.loading-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:11px;color:var(--muted)}
+
+/* DRAFT */
+.section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.mode-row{display:flex;gap:5px}
+.mode-btn{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--green3);border-color:var(--green);color:var(--green)}
+.draft-context{font-size:10px;color:var(--muted2);background:var(--bg3);border-radius:6px;padding:5px 8px}
+.tone-row{display:flex;flex-wrap:wrap;gap:4px}
+.tone-chip{background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:12px;padding:3px 9px;font-size:10px;cursor:pointer;transition:all .15s}
+.tone-chip.active{background:var(--green3);border-color:var(--green);color:var(--green)}
+textarea.draft-out{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11px;padding:10px;min-height:110px;resize:none;outline:none;font-family:var(--font);line-height:1.5}
+textarea.draft-out:focus{border-color:var(--border2)}
+textarea.draft-instructions{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:11px;padding:8px;min-height:44px;resize:none;outline:none;font-family:var(--font)}
+.draft-actions{display:flex;gap:5px}
+.draft-actions button{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:7px;font-size:10px;font-weight:600;cursor:pointer}
+.draft-actions button:hover{border-color:var(--green);color:var(--green)}
+
+/* RULES */
+.rule-item{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.rule-toggle{width:28px;height:16px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);cursor:pointer;position:relative;flex-shrink:0;transition:background .2s}
+.rule-toggle.on{background:var(--green)}
+.rule-thumb{position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .2s}
+.rule-toggle.on .rule-thumb{left:14px}
+.rule-text{flex:1;font-size:11px;color:var(--text);line-height:1.4}
+.rule-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;flex-shrink:0}
+.rule-del:hover{color:var(--red)}
+.rule-input-row{display:flex;gap:6px}
+.rule-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-size:11px;outline:none}
+.rule-input:focus{border-color:var(--green)}
+.btn-add{background:var(--green3);border:1px solid var(--green);color:var(--green);border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:700;flex-shrink:0}
+
+/* TRAIN */
+.train-group{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.feedback-row{display:flex;gap:6px}
+.feedback-btn{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px;font-size:11px;cursor:pointer;transition:all .15s}
+.feedback-btn:hover{border-color:var(--green);color:var(--green)}
+.pref-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.pref-text{flex:1;font-size:10px;color:var(--muted);line-height:1.4}
+.pref-del{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:12px}
+.pref-del:hover{color:var(--red)}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:8px 16px;border-radius:20px;font-size:11px;z-index:999;white-space:nowrap;pointer-events:none;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP SCREEN ═══════════════════════════════════════════ -->
+<div id="setupScreen">
+  <div class="setup-logo">ARIA <span>Email Agent</span></div>
+  <div class="setup-subtitle">AI-powered email intelligence for Quarter Mile</div>
+  <div class="setup-card">
+    <label>🔑 Anthropic API Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-…" autocomplete="off"/>
+    <button class="btn-primary" onclick="startApp()">Launch ARIA →</button>
+    <button class="btn-ghost" onclick="startDemo()">Try without API key</button>
+    <div class="setup-hint">Your API key is stored securely in Outlook and never shared.<br>
+      Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ════════════════════════════════════════════════ -->
+<div id="mainApp">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">ARIA</div>
+    <div class="email-chip" id="emailChip">
+      <div class="live-dot" id="liveDot"></div>
+      <span id="emailChipText">Connecting…</span>
+    </div>
+    <button class="topbar-btn" onclick="retryEmail()" title="Refresh email">↻</button>
+    <button class="topbar-btn" onclick="showSetup()" title="Settings">⚙</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('analyze',this)">ANALYZE</div>
+    <div class="tab" onclick="switchTab('draft',this)">DRAFT</div>
+    <div class="tab" onclick="switchTab('rules',this)">RULES</div>
+    <div class="tab" onclick="switchTab('train',this)">TRAIN</div>
+  </div>
+
+  <!-- ── ANALYZE TAB ── -->
+  <div class="panel active" id="tab-analyze">
+
+    <!-- Email preview card -->
+    <div class="email-preview-card" id="emailPreviewCard">
+      <div class="ep-empty">📧 Connect Microsoft Graph to auto-read emails.<br>One-time sign in with your Microsoft account.</div>
+    </div>
+
+    <!-- Graph connect banner -->
+    <div id="graphAuthBanner">
+      <p>ARIA needs access to read your emails.<br>Sign in once with your Microsoft account.</p>
+      <button class="btn-graph" onclick="connectGraph()">🔗 Connect Microsoft Account</button>
+      <div class="graph-status" id="graphStatus">✅ Connected</div>
+      <!-- Paste fallback for desktop Outlook (auth opens in external browser) -->
+      <div id="pasteFallback" style="display:none;width:100%;margin-top:4px">
+        <p style="font-size:10px;color:#5a6480;margin-bottom:6px">
+          Signed in? Copy the auth code from the browser window and paste it below.
+        </p>
+        <div style="display:flex;gap:6px">
+          <input id="tokenPasteInput" type="password"
+            style="flex:1;background:#0f1117;border:1px solid #3a4560;border-radius:7px;
+                   padding:7px 10px;color:#e8eaf0;font-size:11px;outline:none"
+            placeholder="Paste auth code here…"/>
+          <button onclick="submitPastedToken()"
+            style="background:#4a9eff;color:#fff;border:none;border-radius:7px;
+                   padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+            ✓ Use
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyze button -->
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyzeCurrentEmail()">⚡ Analyze with ARIA</button>
+
+    <!-- Results -->
+    <div id="analysisResults"></div>
+  </div>
+
+  <!-- ── DRAFT TAB ── -->
+  <div class="panel" id="tab-draft">
+    <div class="section-label">Mode</div>
+    <div class="mode-row">
+      <button class="mode-btn active" id="mode-reply" onclick="setMode('reply',this)">↩ Reply</button>
+      <button class="mode-btn" id="mode-compose" onclick="setMode('compose',this)">✍ Compose</button>
+      <button class="mode-btn" id="mode-forward" onclick="setMode('forward',this)">↪ Forward</button>
+    </div>
+    <div class="section-label">Tone</div>
+    <div class="tone-row">
+      <span class="tone-chip active" onclick="setTone('formal',this)">Formal</span>
+      <span class="tone-chip" onclick="setTone('friendly',this)">Friendly</span>
+      <span class="tone-chip" onclick="setTone('concise',this)">Concise</span>
+      <span class="tone-chip" onclick="setTone('assertive',this)">Assertive</span>
+      <span class="tone-chip" onclick="setTone('apologetic',this)">Apologetic</span>
+    </div>
+    <div class="draft-context" id="draftContext">Select an email to reply to it</div>
+    <textarea class="draft-instructions" id="draftInstructions" placeholder="Optional: specific instructions for this draft…"></textarea>
+    <button class="btn-primary" onclick="generateDraft()">✍ Generate Draft</button>
+    <textarea class="draft-out" id="draftOutput" placeholder="Your draft will appear here…" readonly></textarea>
+    <div class="draft-actions">
+      <button onclick="copyDraft()">Copy</button>
+      <button onclick="insertDraft()">Insert into Outlook</button>
+      <button onclick="refineDraft()">Refine</button>
+    </div>
+  </div>
+
+  <!-- ── RULES TAB ── -->
+  <div class="panel" id="tab-rules">
+    <div class="section-label">Automation Rules</div>
+    <div style="font-size:10px;color:var(--muted2)">Plain-English rules applied every time you analyze an email.</div>
+    <div class="rule-input-row">
+      <input class="rule-input" id="ruleInput" placeholder="e.g. Flag emails from clients as URGENT" onkeydown="if(event.key==='Enter')addRule()"/>
+      <button class="btn-add" onclick="addRule()">+</button>
+    </div>
+    <div id="rulesListEl"></div>
+  </div>
+
+  <!-- ── TRAIN TAB ── -->
+  <div class="panel" id="tab-train">
+    <div class="section-label">Was ARIA's last analysis correct?</div>
+    <div class="feedback-row">
+      <button class="feedback-btn" onclick="submitFeedback('correct')">👍 Correct</button>
+      <button class="feedback-btn" onclick="submitFeedback('incorrect')">👎 Incorrect</button>
+    </div>
+    <div class="train-group">
+      <div class="section-label">What should ARIA have done?</div>
+      <textarea class="draft-instructions" id="correctionInput" placeholder="e.g. This was urgent — emails from @client.com are always high priority"></textarea>
+      <button class="btn-primary" onclick="saveCorrection()">Save Feedback</button>
+    </div>
+    <div class="train-group">
+      <div class="section-label">🧠 Teach ARIA</div>
+      <textarea class="draft-instructions" id="teachInput" placeholder="e.g. Emails from Ruben Perez should always be marked URGENT"></textarea>
+      <button class="btn-primary" onclick="teachAria()">Save Preference</button>
+    </div>
+    <div class="section-label">📚 Learned Preferences</div>
+    <div id="prefsListEl"></div>
+  </div>
+
+</div><!-- /mainApp -->
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const CLIENT_ID   = 'bf85df90-e8b1-4d69-b159-c6084924f5ff'; // ARIA Azure App
+const TENANT      = 'be1fd175-9232-407d-98d6-3e02e1045a00'; // Quarter Mile tenant ID
+const REDIRECT_URI = 'https://quartermile-aria.netlify.app/auth.html';
+const GRAPH_SCOPES = 'Mail.Read User.Read';
+const MODEL        = 'claude-haiku-4-5-20251001'; // cost-optimized
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let apiKey = '', graphToken = null, currentEmail = null, lastAnalysis = null;
+let rules = [], prefs = [];
+let currentTone = 'formal', currentMode = 'reply';
+let isDemo = false, officeReady = false;
+
+// ── OFFICE.JS INIT ───────────────────────────────────────────────────────────
+Office.onReady(info => {
+  officeReady = true;
+  loadState();
+  const saved = getSetting('aria_key');
+  if (saved) { apiKey = saved; document.getElementById('apiKeyInput').value = saved; launchApp(); }
+  if (rules.length === 0) initDefaultRules();
+  renderRules(); renderPrefs();
+  attemptEmailLoad();
+  try {
+    Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, () => {
+      currentEmail = null; attemptEmailLoad();
+    });
+  } catch(e) {}
+});
+Office.initialize = function() { if (!officeReady) officeReady = true; };
+
+// ── EMAIL LOADING ────────────────────────────────────────────────────────────
+// Method 1: Office.js mailbox.item (classic desktop Outlook)
+function tryOfficeMailbox() {
+  try {
+    const item = Office.context?.mailbox?.item;
+    if (!item) return false;
+    let from = 'Unknown', subject = '(No subject)';
+    try { from = item.from?.displayName || item.from?.emailAddress || 'Unknown'; } catch(e) {}
+    try { subject = item.subject || '(No subject)'; } catch(e) {}
+    item.body.getAsync(Office.CoercionType.Text, result => {
+      if (result.status !== Office.AsyncResultStatus.Succeeded) return;
+      currentEmail = { from, subject, body: (result.value || '').slice(0, 1500) };
+      onEmailLoaded();
+    });
+    return true;
+  } catch(e) { return false; }
+}
+
+// Method 2: Graph API — fetch by Office.js itemId (most reliable cross-platform)
+async function tryGraphByItemId() {
+  if (!graphToken) return false;
+  try {
+    let itemId = null;
+    try { itemId = Office.context?.mailbox?.item?.itemId; } catch(e) {}
+    if (!itemId) return false;
+
+    // Convert to REST-compatible ID if needed (EWS → REST)
+    let restId = itemId;
+    try {
+      restId = Office.context.mailbox.convertToRestId(itemId, Office.MailboxEnums.RestVersion.v2_0);
+    } catch(e) {}
+
+    const r = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(restId)}?$select=subject,from,body`,
+      { headers: { 'Authorization': 'Bearer ' + graphToken } }
+    );
+    if (!r.ok) {
+      if (r.status === 401) graphToken = null; // token expired
+      return false;
+    }
+    const data = await r.json();
+    currentEmail = {
+      from: data.from?.emailAddress?.name || data.from?.emailAddress?.address || 'Unknown',
+      subject: data.subject || '(No subject)',
+      body: (data.body?.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500)
+    };
+    onEmailLoaded();
+    return true;
+  } catch(e) { return false; }
+}
+
+// Method 3: Graph API — fetch latest message as fallback
+async function tryGraphLatestMessage() {
+  if (!graphToken) return false;
+  try {
+    const r = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages?$select=subject,from,body,receivedDateTime&$orderby=receivedDateTime desc&$top=1`,
+      { headers: { 'Authorization': 'Bearer ' + graphToken } }
+    );
+    if (!r.ok) { if (r.status === 401) graphToken = null; return false; }
+    const data = await r.json();
+    const msg = data.value?.[0];
+    if (!msg) return false;
+    currentEmail = {
+      from: msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown',
+      subject: msg.subject || '(No subject)',
+      body: (msg.body?.content || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1500)
+    };
+    onEmailLoaded();
+    notify('📧 Showing most recent email');
+    return true;
+  } catch(e) { return false; }
+}
+
+function onEmailLoaded() {
+  document.getElementById('liveDot').classList.add('live');
+  document.getElementById('emailChipText').textContent = currentEmail.from.slice(0, 24);
+  document.getElementById('emailPreviewCard').innerHTML = `
+    <div style="width:100%">
+      <div class="ep-from">${escHtml(currentEmail.from)}</div>
+      <div class="ep-subject">${escHtml(currentEmail.subject)}</div>
+      <div class="ep-preview">${escHtml(currentEmail.body.slice(0, 120))}…</div>
+    </div>`;
+  updateDraftContext();
+  document.getElementById('graphAuthBanner').style.display = 'none';
+  document.getElementById('graphStatus').style.display = 'block';
+}
+
+async function attemptEmailLoad() {
+  if (currentEmail) return;
+  document.getElementById('emailChipText').textContent = 'Connecting…';
+
+  // 1. Try Office.js (fastest if in classic Outlook)
+  if (tryOfficeMailbox()) { return; }
+
+  // 2. If we have a Graph token, try itemId then latest-message fallback
+  if (graphToken) {
+    const ok = await tryGraphByItemId();
+    if (ok) return;
+    await tryGraphLatestMessage();
+    return;
+  }
+
+  // 3. No token — show connect banner after short delay
+  setTimeout(() => {
+    if (!currentEmail) {
+      document.getElementById('emailChipText').textContent = 'Connect Microsoft';
+      document.getElementById('emailPreviewCard').innerHTML =
+        '<div class="ep-empty">📭<span>Connect Microsoft account to read emails</span></div>';
+      document.getElementById('graphAuthBanner').style.display = 'flex';
+    }
+  }, 2000);
+}
+
+async function retryEmail() {
+  currentEmail = null;
+  document.getElementById('liveDot').classList.remove('live');
+  document.getElementById('emailChipText').textContent = 'Retrying…';
+  document.getElementById('graphAuthBanner').style.display = 'none';
+  if (tryOfficeMailbox()) { notify('Reading email…'); return; }
+  if (graphToken) {
+    const ok = await tryGraphByItemId() || await tryGraphLatestMessage();
+    if (ok) { notify('✅ Email loaded!'); return; }
+  }
+  notify('Connect your Microsoft account below');
+  document.getElementById('graphAuthBanner').style.display = 'flex';
+}
+
+
+// ── GRAPH AUTH ───────────────────────────────────────────────────────────────
+// Token delivery strategy: auth.html writes token to localStorage('aria_pending_token').
+// index.html polls every second. Works regardless of how the window was opened
+// (Office dialog, popup, or external browser tab from desktop Outlook).
+let _authPollTimer = null;
+
+function connectGraph() {
+  const authUrl = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize`
+    + `?client_id=${CLIENT_ID}`
+    + `&response_type=token`
+    + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+    + `&scope=${encodeURIComponent(GRAPH_SCOPES)}`
+    + `&response_mode=fragment`
+    + `&prompt=select_account`;
+
+  // Clear any stale pending token
+  try { localStorage.removeItem('aria_pending_token'); } catch(e) {}
+
+  // Start polling localStorage for token before opening auth window
+  startTokenPoll();
+
+  // Try Office Dialog API first (desktop Outlook native managed dialog)
+  if (officeReady && Office.context?.ui?.displayDialogAsync) {
+    Office.context.ui.displayDialogAsync(
+      authUrl,
+      { height: 60, width: 35, promptBeforeOpen: false },
+      function(result) {
+        if (result.status === Office.AsyncResultStatus.Failed) {
+          openExternalAuth(authUrl); return;
+        }
+        const dialog = result.value;
+        // Bonus: also catch via Office message channel if messageParent works
+        dialog.addEventHandler(Office.EventType.DialogMessageReceived, async function(arg) {
+          dialog.close(); stopTokenPoll();
+          try {
+            const msg = JSON.parse(arg.message);
+            if (msg.type === 'aria_token' && msg.token) await onTokenReceived(msg.token);
+          } catch(e) {}
+        });
+        dialog.addEventHandler(Office.EventType.DialogEventReceived, function(arg) {
+          if (arg.error === 12006) { stopTokenPoll(); notify('Sign-in cancelled'); }
+        });
+      }
+    );
+  } else {
+    openExternalAuth(authUrl);
+  }
+}
+
+function openExternalAuth(authUrl) {
+  window.open(authUrl, 'aria_auth', 'width=520,height=640,scrollbars=yes');
+  // postMessage listener as additional fallback for web Outlook / popups
+  window.addEventListener('message', async function handler(e) {
+    if (e.origin !== 'https://quartermile-aria.netlify.app') return;
+    if (e.data?.type !== 'aria_token') return;
+    window.removeEventListener('message', handler);
+    stopTokenPoll();
+    await onTokenReceived(e.data.token);
+  });
+  // Show paste fallback after 4s for desktop Outlook (auth opens externally)
+  setTimeout(() => {
+    if (!graphToken) {
+      document.getElementById('pasteFallback').style.display = 'block';
+    }
+  }, 4000);
+}
+
+function startTokenPoll() {
+  stopTokenPoll();
+  let attempts = 0;
+  _authPollTimer = setInterval(async () => {
+    attempts++;
+    if (attempts > 120) { stopTokenPoll(); return; } // 2 min timeout
+    try {
+      const pending = localStorage.getItem('aria_pending_token');
+      if (pending) {
+        localStorage.removeItem('aria_pending_token');
+        stopTokenPoll();
+        await onTokenReceived(pending);
+      }
+    } catch(e) {}
+  }, 1000);
+}
+
+function stopTokenPoll() {
+  if (_authPollTimer) { clearInterval(_authPollTimer); _authPollTimer = null; }
+}
+
+async function onTokenReceived(token) {
+  graphToken = token;
+  document.getElementById('graphStatus').style.display = 'block';
+  document.getElementById('graphAuthBanner').style.display = 'none';
+  document.getElementById('pasteFallback').style.display = 'none';
+  notify('✅ Microsoft account connected!');
+  const ok = await tryGraphByItemId();
+  if (!ok) await tryGraphLatestMessage();
+}
+
+async function submitPastedToken() {
+  const input = document.getElementById('tokenPasteInput');
+  const token = input.value.trim();
+  if (!token) { notify('Please paste your auth code first'); return; }
+  stopTokenPoll();
+  await onTokenReceived(token);
+}
+
+
+// ── CLAUDE API ───────────────────────────────────────────────────────────────
+function buildSystem() {
+  const r = rules.filter(r=>r.active).map(r=>`- ${r.text}`).join('\n') || 'None';
+  const p = prefs.map(p=>`- ${p.text}`).join('\n') || 'None';
+  return `You are ARIA, an AI email assistant for Quarter Mile Inc. inside Microsoft Outlook. Be professional and concise.
+ACTIVE RULES:\n${r}
+LEARNED PREFERENCES:\n${p}
+When analyzing emails return ONLY valid JSON (no markdown): {"summary":"2-3 sentence summary","category":"URGENT|ACTION REQUIRED|MEETING|FOLLOW-UP|FYI|NEWSLETTER|SPAM","priority":"HIGH|MEDIUM|LOW","sentiment":"positive|neutral|negative","keyPoints":["point1","point2","point3"],"actionRequired":"what action needed or null","deadline":"deadline or null","suggestedReplies":["reply1","reply2","reply3"],"calendarEvent":{"title":"","date":"","time":"","location":""} or null,"todos":[{"task":"","deadline":""}],"recommendedAction":"KEEP|ARCHIVE|DELETE|REPLY_URGENT","reasoning":"brief explanation"}`;
+}
+
+async function callClaude(messages, system) {
+  if (isDemo) return JSON.stringify({summary:"Demo mode — add API key for real AI.",category:"FYI",priority:"MEDIUM",sentiment:"neutral",keyPoints:["Demo mode active","Add API key in settings","All features unlock"],actionRequired:null,deadline:null,suggestedReplies:["Thank you for your email.","I'll review this shortly.","I'll get back to you soon."],calendarEvent:null,todos:[],recommendedAction:"KEEP",reasoning:"Demo mode"});
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+    body: JSON.stringify({ model:MODEL, max_tokens:600, system:system||buildSystem(), messages })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content?.map(b=>b.text||'').join('') || '';
+}
+
+// ── ANALYZE ──────────────────────────────────────────────────────────────────
+async function analyzeCurrentEmail() {
+  if (!currentEmail) {
+    tryOfficeMailbox();
+    await new Promise(r=>setTimeout(r,1500));
+    if (!currentEmail && graphToken) {
+      await tryGraphByItemId() || await tryGraphLatestMessage();
+    }
+    if (!currentEmail) {
+      document.getElementById('graphAuthBanner').style.display = 'flex';
+      notify('Connect your Microsoft account to read emails');
+      return;
+    }
+  }
+  const btn = document.getElementById('analyzeBtn');
+  const results = document.getElementById('analysisResults');
+  btn.disabled = true; btn.textContent = 'Analyzing…';
+  results.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">ARIA is reading your email…</div></div>';
+  try {
+    const prompt = `Analyze this email:\nFrom: ${currentEmail.from}\nSubject: ${currentEmail.subject}\nBody:\n${currentEmail.body}`;
+    const raw = await callClaude([{role:'user',content:prompt}]);
+    lastAnalysis = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    renderAnalysis(lastAnalysis);
+  } catch(e) {
+    results.innerHTML = `<div class="result-card"><div class="result-label">⚠ Error</div><div class="result-text" style="color:var(--red)">${e.message}</div></div>`;
+  }
+  btn.disabled = false; btn.textContent = '⚡ Analyze with ARIA';
+}
+
+const catCls={'URGENT':'t-urgent','ACTION REQUIRED':'t-action','MEETING':'t-meeting','FOLLOW-UP':'t-followup','FYI':'t-fyi','NEWSLETTER':'t-newsletter','SPAM':'t-spam'};
+const priCls={HIGH:'p-high',MEDIUM:'p-medium',LOW:'p-low'};
+
+function renderAnalysis(a) {
+  document.getElementById('analysisResults').innerHTML = `
+    <div class="tags-row">
+      ${a.category?`<span class="tag ${catCls[a.category]||''}">${a.category}</span>`:''}
+      ${a.priority?`<span class="tag ${priCls[a.priority]||''}">⚡ ${a.priority}</span>`:''}
+      ${a.sentiment?`<span class="tag" style="background:var(--bg3);color:var(--muted);border:1px solid var(--border2)">${a.sentiment}</span>`:''}
+    </div>
+    <div class="result-card"><div class="result-label">📋 Summary</div><div class="result-text">${a.summary}</div></div>
+    ${a.keyPoints?.length?`<div class="result-card"><div class="result-label">🔑 Key Points</div><div class="result-text">${a.keyPoints.map(k=>`• ${k}`).join('<br>')}</div></div>`:''}
+    ${a.actionRequired?`<div class="result-card" style="border-color:rgba(210,153,34,.3)"><div class="result-label" style="color:var(--orange)">⚡ Action Required</div><div class="result-text">${a.actionRequired}${a.deadline?`<br><span style="color:var(--gold)">Deadline: ${a.deadline}</span>`:''}</div></div>`:''}
+    ${a.calendarEvent?`<div class="result-card" style="border-color:rgba(188,140,255,.3)"><div class="result-label" style="color:var(--purple)">📅 Calendar Event</div><div class="result-text">${a.calendarEvent.title}<br><span style="color:var(--muted)">${a.calendarEvent.date||''} ${a.calendarEvent.time||''} ${a.calendarEvent.location||''}</span></div></div>`:''}
+    ${a.todos?.length?`<div class="result-card"><div class="result-label">✅ To-Dos</div><div class="result-text">${a.todos.map(t=>`• ${t.task}${t.deadline?` <span style="color:var(--gold)">(${t.deadline})</span>`:''}`).join('<br>')}</div></div>`:''}
+    <div class="result-card"><div class="result-label">💬 Quick Replies</div>${a.suggestedReplies?.map(r=>`<button class="reply-option" onclick="useSuggestedReply(this)">${escHtml(r)}</button>`).join('')||''}</div>
+    <div class="action-grid">
+      <button class="action-btn" onclick="switchTab('draft',document.querySelector('.tab:nth-child(2)'))">✍ Draft Reply</button>
+      <button class="action-btn" onclick="switchTab('train',document.querySelector('.tab:nth-child(4)'))">🧠 Train ARIA</button>
+      <button class="action-btn" onclick="notify('Recommendation: '+(lastAnalysis?.recommendedAction||''))">📊 Action</button>
+      <button class="action-btn" onclick="notify('Marked correct! ✅')">👍 Correct</button>
+    </div>
+    <div style="font-size:9px;color:var(--muted2);padding:4px 2px">💡 ${a.reasoning||''}</div>`;
+}
+
+function useSuggestedReply(el) {
+  document.getElementById('draftOutput').value = el.textContent;
+  switchTab('draft', document.querySelector('.tab:nth-child(2)'));
+  notify('Draft loaded!');
+}
+
+// ── DRAFT ────────────────────────────────────────────────────────────────────
+function setMode(m, el) {
+  currentMode = m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  updateDraftContext();
+}
+function setTone(t, el) {
+  currentTone = t;
+  document.querySelectorAll('.tone-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function updateDraftContext() {
+  if (!currentEmail) return;
+  document.getElementById('draftContext').textContent = currentMode==='compose'
+    ? 'Composing a new email'
+    : `${currentMode==='reply'?'Replying to':'Forwarding'}: ${currentEmail.subject}`;
+}
+async function generateDraft() {
+  const instructions = document.getElementById('draftInstructions').value.trim();
+  const output = document.getElementById('draftOutput');
+  output.value = 'Generating…';
+  const email = currentEmail || {from:'demo@example.com',subject:'Demo',body:'Demo email.'};
+  const sys = `You are a professional email ghostwriter for Quarter Mile Inc. Write ${currentTone} business emails. Return ONLY the email body text.`;
+  const prompt = currentMode==='reply'
+    ? `Write a ${currentTone} reply.\nFrom: ${email.from}\nSubject: ${email.subject}\nBody: ${email.body}\n${instructions?`Instructions: ${instructions}`:''}`
+    : currentMode==='compose'
+    ? `Write a ${currentTone} professional email. ${instructions||'Write a general business email.'}`
+    : `Write a ${currentTone} forwarding message.\nSubject: ${email.subject}\nBody: ${email.body}\n${instructions?`Instructions: ${instructions}`:''}`;
+  try { output.value = await callClaude([{role:'user',content:prompt}], sys); }
+  catch(e) { output.value = 'Error: '+e.message; }
+}
+function copyDraft() { navigator.clipboard.writeText(document.getElementById('draftOutput').value); notify('Copied!'); }
+function insertDraft() {
+  const text = document.getElementById('draftOutput').value;
+  if (!text) return;
+  try {
+    Office.context.mailbox.item.body.setAsync(text, {coercionType:Office.CoercionType.Text}, r => {
+      notify(r.status===Office.AsyncResultStatus.Succeeded ? 'Draft inserted!' : 'Copy and paste manually');
+    });
+  } catch(e) { notify('Copy and paste the draft manually'); }
+}
+async function refineDraft() {
+  const current = document.getElementById('draftOutput').value;
+  if (!current || current==='Generating…') return;
+  const instruction = window.prompt('How should I refine this draft?');
+  if (!instruction) return;
+  const result = await callClaude([{role:'user',content:`Refine this email:\n${current}\n\nInstruction: ${instruction}`}], 'Refine the email draft. Return ONLY the refined body text.');
+  document.getElementById('draftOutput').value = result;
+}
+
+// ── RULES ────────────────────────────────────────────────────────────────────
+function initDefaultRules() {
+  rules = [
+    {id:1,text:'Flag emails from my manager or CEO as URGENT priority',active:true},
+    {id:2,text:'Auto-categorize newsletters and promotional emails as NEWSLETTER',active:true},
+    {id:3,text:'Any email with "invoice", "payment", or "overdue" is ACTION REQUIRED',active:true},
+    {id:4,text:'Emails with meeting invitations should be categorized as MEETING',active:true},
+  ];
+  saveState();
+}
+function addRule() {
+  const input = document.getElementById('ruleInput');
+  const text = input.value.trim();
+  if (!text) return;
+  rules.push({id:Date.now(),text,active:true});
+  input.value = ''; saveState(); renderRules(); notify('Rule added!');
+}
+function renderRules() {
+  const el = document.getElementById('rulesListEl');
+  if (!rules.length) { el.innerHTML='<div style="color:var(--muted2);font-size:11px;text-align:center;padding:12px">No rules yet</div>'; return; }
+  el.innerHTML = rules.map(r=>`<div class="rule-item">
+    <div class="rule-toggle ${r.active?'on':''}" onclick="toggleRule(${r.id})"><div class="rule-thumb"></div></div>
+    <div class="rule-text">${escHtml(r.text)}</div>
+    <button class="rule-del" onclick="deleteRule(${r.id})">✕</button>
+  </div>`).join('');
+}
+function toggleRule(id) { rules=rules.map(r=>r.id===id?{...r,active:!r.active}:r); saveState(); renderRules(); }
+function deleteRule(id) { rules=rules.filter(r=>r.id!==id); saveState(); renderRules(); }
+
+// ── TRAIN ────────────────────────────────────────────────────────────────────
+function submitFeedback(t) { notify(t==='correct'?'✅ ARIA will continue this.':'Tell ARIA what it should have done.'); }
+function saveCorrection() {
+  const text = document.getElementById('correctionInput').value.trim();
+  if (!text) return;
+  prefs.push({id:Date.now(),text:'Correction: '+text,created:new Date().toLocaleDateString()});
+  document.getElementById('correctionInput').value = '';
+  saveState(); renderPrefs(); notify('Feedback saved!');
+}
+function teachAria() {
+  const input = document.getElementById('teachInput');
+  const text = input.value.trim();
+  if (!text) return;
+  prefs.push({id:Date.now(),text,created:new Date().toLocaleDateString()});
+  input.value = ''; saveState(); renderPrefs(); notify('Preference saved!');
+}
+function renderPrefs() {
+  const el = document.getElementById('prefsListEl');
+  if (!prefs.length) { el.innerHTML='<div style="color:var(--muted2);font-size:11px;text-align:center;padding:8px">No preferences yet</div>'; return; }
+  el.innerHTML = prefs.map(p=>`<div class="pref-item">
+    <div class="pref-text">${escHtml(p.text)}<br><span style="font-size:9px;color:var(--muted2)">${p.created||''}</span></div>
+    <button class="pref-del" onclick="deletePref(${p.id})">✕</button>
+  </div>`).join('');
+}
+function deletePref(id) { prefs=prefs.filter(p=>p.id!==id); saveState(); renderPrefs(); }
+
+// ── SETTINGS PERSISTENCE ─────────────────────────────────────────────────────
+function getSetting(key) {
+  try { if (officeReady && Office.context.roamingSettings) return Office.context.roamingSettings.get(key); } catch(e) {}
+  try { return localStorage.getItem(key); } catch(e) {}
+  return null;
+}
+function setSetting(key, value) {
+  try { if (officeReady && Office.context.roamingSettings) { Office.context.roamingSettings.set(key,value); Office.context.roamingSettings.saveAsync(); } } catch(e) {}
+  try { localStorage.setItem(key,value); } catch(e) {}
+}
+function saveState() { setSetting('aria_rules',JSON.stringify(rules)); setSetting('aria_prefs',JSON.stringify(prefs)); }
+function loadState() {
+  try { rules = JSON.parse(getSetting('aria_rules')||'[]'); } catch(e) { rules=[]; }
+  try { prefs = JSON.parse(getSetting('aria_prefs')||'[]'); } catch(e) { prefs=[]; }
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+function launchApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  if (officeReady) attemptEmailLoad();
+}
+function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { notify('Please enter your API key'); return; }
+  apiKey = key; setSetting('aria_key',key); launchApp();
+}
+function startDemo() { isDemo=true; launchApp(); notify('Demo mode — add API key for full AI'); }
+function showSetup() {
+  document.getElementById('setupScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+}
+function notify(msg) {
+  const n=document.createElement('div'); n.className='notif'; n.textContent=msg;
+  document.body.appendChild(n); setTimeout(()=>n.remove(),3000);
+}
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
