@@ -292,7 +292,7 @@ textarea.draft-instructions{width:100%;background:var(--bg2);border:1px solid va
 // ── CONFIG ───────────────────────────────────────────────────────────────────
 const CLIENT_ID   = 'bf85df90-e8b1-4d69-b159-c6084924f5ff'; // ARIA Azure App
 const TENANT      = 'be1fd175-9232-407d-98d6-3e02e1045a00'; // Quarter Mile tenant ID
-const REDIRECT_URI = 'https://quartermile-aria.netlify.app/auth.html';
+const REDIRECT_URI = 'https://quartermile02.github.io/aria/auth.html';
 const GRAPH_SCOPES = 'Mail.Read User.Read';
 const MODEL        = 'claude-haiku-4-5-20251001'; // cost-optimized
 
@@ -501,7 +501,7 @@ function openExternalAuth(authUrl) {
   window.open(authUrl, 'aria_auth', 'width=520,height=640,scrollbars=yes');
   // postMessage listener as additional fallback for web Outlook / popups
   window.addEventListener('message', async function handler(e) {
-    if (e.origin !== 'https://quartermile-aria.netlify.app') return;
+    if (e.origin !== 'https://quartermile02.github.io') return;
     if (e.data?.type !== 'aria_token') return;
     window.removeEventListener('message', handler);
     stopTokenPoll();
