@@ -1,0 +1,134 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.1",
+  "id": "2294095d-d79d-4751-b9e4-7649ff72df0d",
+  "name": {
+    "short": "ARIA",
+    "full": "ARIA Email Agent"
+  },
+  "description": {
+    "short": "AI-powered email assistant for Quarter Mile",
+    "full": "ARIA is an AI-powered email agent for Quarter Mile Inc. that analyzes emails, drafts replies, and automates email workflows using Claude AI."
+  },
+  "icons": {
+    "outline": "icon-64.png",
+    "color": "icon-128.png"
+  },
+  "accentColor": "#8dc63f",
+  "developer": {
+    "name": "Quarter Mile Inc.",
+    "websiteUrl": "https://quartermile02.github.io/aria/",
+    "privacyUrl": "https://quartermile02.github.io/aria/",
+    "termsOfUseUrl": "https://quartermile02.github.io/aria/"
+  },
+  "extensions": [
+    {
+      "requirements": {
+        "scopes": [
+          "mail"
+        ],
+        "capabilities": [
+          {
+            "name": "Mailbox",
+            "minVersion": "1.3"
+          }
+        ]
+      },
+      "runtimes": [
+        {
+          "requirements": {
+            "capabilities": [
+              {
+                "name": "Mailbox",
+                "minVersion": "1.3"
+              }
+            ]
+          },
+          "id": "TaskPaneRuntime",
+          "type": "general",
+          "code": {
+            "page": "https://quartermile02.github.io/aria/index.html"
+          },
+          "lifetime": "short",
+          "actions": [
+            {
+              "id": "TaskPaneRuntimeShow",
+              "type": "openPage",
+              "pinnable": true,
+              "view": "dashboard"
+            }
+          ]
+        }
+      ],
+      "ribbons": [
+        {
+          "contexts": [
+            "mailRead"
+          ],
+          "tabs": [
+            {
+              "builtInTabId": "TabDefault",
+              "groups": [
+                {
+                  "id": "msgReadGroup",
+                  "label": "ARIA",
+                  "icons": [
+                    {
+                      "size": 16,
+                      "url": "https://quartermile02.github.io/aria/icon-64.png"
+                    },
+                    {
+                      "size": 32,
+                      "url": "https://quartermile02.github.io/aria/icon-64.png"
+                    },
+                    {
+                      "size": 80,
+                      "url": "https://quartermile02.github.io/aria/icon-128.png"
+                    }
+                  ],
+                  "controls": [
+                    {
+                      "id": "TaskPaneButton",
+                      "type": "button",
+                      "label": "ARIA",
+                      "icons": [
+                        {
+                          "size": 16,
+                          "url": "https://quartermile02.github.io/aria/icon-64.png"
+                        },
+                        {
+                          "size": 32,
+                          "url": "https://quartermile02.github.io/aria/icon-64.png"
+                        },
+                        {
+                          "size": 80,
+                          "url": "https://quartermile02.github.io/aria/icon-128.png"
+                        }
+                      ],
+                      "supertip": {
+                        "title": "ARIA Email Agent",
+                        "description": "Open ARIA to analyze and respond to this email with AI."
+                      },
+                      "actionId": "TaskPaneRuntimeShow"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "MailboxItem.Read.User",
+          "type": "Delegated"
+        }
+      ]
+    }
+  }
+}
